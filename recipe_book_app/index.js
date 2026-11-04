@@ -9,11 +9,38 @@ const mongoUri = process.env.MONGO_URI;
 const dbname = "recipe_book";
 const PORT = process.env.PORT || 3000;
 const bcrypt = require('bcrypt')
+const crypto = require('crypto');
+const secret = crypto.randomBytes(64).toString('hex');
+//console.log(secret);
+const { ai, MODEL, generateSearchParams, generateRecipe } = require("./gemini");
+
 
 if (!mongoUri) {
     console.error("FATAL ERROR: MONGO_URI is not defined in .env");
     process.exit(1);
 }
+
+const jwt = require('jsonwebtoken');
+const generateAccessToken = (id, email) => {
+    return jwt.sign({
+        'user_id': id,
+        'email': email
+    }, process.env.TOKEN_SECRET, {
+        expiresIn: "1h"
+    });
+}
+const verifyToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.sendStatus(403);
+    jwt.verify(token, process.env.TOKEN_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403);
+        req.user = user;
+        next();
+    });
+};
+
+
 
 let app = express();
 
@@ -61,6 +88,9 @@ async function main() {
         //         res.status(500).json({ error: "Internal server error" });
         //     }
         // });
+        app.get('/profile', verifyToken, (req, res) => {
+            res.json({ message: 'This is a protected route', user: req.user });
+        });
         app.get("/recipes/:id", async (req, res) => {
             try {
                 const id = req.params.id;
@@ -81,6 +111,74 @@ async function main() {
                 res.status(500).json({ error: "Internal server error" });
             }
         });
+        // AI-powered recipe search endpoint
+        app.get('/ai/recipes', async function (req, res) {
+            const query = req.query.q;
+
+            const allCuisines = await db.collection('cuisines').distinct('name');
+            const allTags = await db.collection('tags').distinct('name');
+            const allIngredients = await db.collection('recipes').distinct('ingredients.name');
+
+            const searchParams = await generateSearchParams(query, allTags, allCuisines, allIngredients);
+            const criteria = {};
+
+            if (searchParams.cuisines && searchParams.cuisines.length > 0) {
+                criteria["cuisine.name"] = {
+                    $in: searchParams.cuisines
+                }
+            }
+
+            if (searchParams.ingredients && searchParams.ingredients.length > 0) {
+                criteria["ingredients.name"] = {
+                    $all: searchParams.ingredients
+                }
+            }
+
+            if (searchParams.tags && searchParams.tags.length > 0) {
+                criteria['tags.name'] = {
+                    $in: searchParams.tags
+                }
+            }
+
+            const recipes = await db.collection('recipes').find(criteria).toArray();
+            res.json({
+                recipes
+            })
+        })
+        // AI-powered recipe generation endpoint
+        app.post('/ai/recipes', async function (req, res) {
+            const recipeText = req.body.recipeText;
+            const allCuisines = await db.collection('cuisines').distinct('name');
+            const allTags = await db.collection('tags').distinct('name');
+            const newRecipe = await generateRecipe(recipeText, allCuisines, allTags);
+
+            // get the cuisine document
+            const cuisineDoc = await db.collection('cuisines').findOne({
+                "name": newRecipe.cuisine
+            });
+
+            if (cuisineDoc) {
+                newRecipe.cuisine = cuisineDoc;
+            } else {
+                return res.status(404).json({
+                    "error": "AI tried to use a cuisine that doesn't exist"
+                })
+            }
+
+            // get all the tags that corresponds
+            const tagDocs = await db.collection('tags').find({
+                'name': {
+                    $in: newRecipe.tags
+                }
+            }).toArray();
+            newRecipe.tags = tagDocs;
+
+            // insert into the database
+            const result = await db.collection('recipes').insertOne(newRecipe);
+            res.json({
+                recipeId: result.insertedId
+            })
+        })
         app.get('/recipes', async (req, res) => {
             try {
                 const { tags, cuisine, ingredients, name } = req.query;
@@ -382,6 +480,23 @@ async function main() {
                 "result": result
             })
         })
+        app.post(['/login', '/logins'], async (req, res) => {
+            const { email, password } = req.body;
+            if (!email || !password) {
+                return res.status(400).json({ message: 'Email and password are required' });
+            }
+            const user = await db.collection('users').findOne({ email: email });
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            if (!isPasswordValid) {
+                return res.status(401).json({ message: 'Invalid password' });
+            }
+            const accessToken = generateAccessToken(user._id, user.email);
+            res.json({ accessToken: accessToken });
+        });
+
     } catch (error) {
         console.error('Error connecting to MongoDB', error);
         process.exit(1); // Exit process if DB fails to connect on startup
