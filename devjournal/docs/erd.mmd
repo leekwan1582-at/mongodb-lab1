@@ -1,0 +1,41 @@
+erDiagram
+    ENVIRONMENTS ||--o{ ENTRIES : "has many"
+    USERS ||--o{ ENTRIES : "records / owns"
+    ENTRIES ||--o{ AUDIT_TRAIL : "embeds (subdocument array)"
+
+    ENVIRONMENTS {
+        ObjectId _id PK
+        String name "Unique"
+        String platform
+        String runtime
+    }
+
+    USERS {
+        ObjectId _id PK
+        String email "Unique"
+        String password "Bcrypt Hash"
+        String role "admin | developer"
+    }
+
+    ENTRIES {
+        ObjectId _id PK
+        String title
+        String symptom
+        String tried
+        String rootCause
+        String fix
+        String lesson
+        String severity "Critical | High | Medium | Low"
+        Array_String tags
+        String legacyId
+        ISODate createdAt
+        ObjectId environment_id FK "Referenced Relationship"
+    }
+
+    AUDIT_TRAIL {
+        ObjectId attemptId PK
+        String actionTaken
+        String outcome
+        ISODate timestamp
+        String recordedBy
+    }
