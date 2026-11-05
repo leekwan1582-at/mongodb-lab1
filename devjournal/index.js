@@ -5,7 +5,12 @@ const { ObjectId } = require("mongodb");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { connect } = require("./db"); 
-const { generateSearchParams, parseCrashLogToEntry } = require("./gemini");
+
+// --- DYNAMIC LLM MODULE LOADER ---
+const provider = (process.env.LLM_PROVIDER || "gemini").toLowerCase().trim();
+const llmModulePath = provider === "deepseek" ? "./deepseek" : "./gemini";
+console.log(`[LLM] Selected Provider: ${provider.toUpperCase()} (Loading ${llmModulePath}.js)`);
+const { generateSearchParams, parseCrashLogToEntry } = require(llmModulePath);
 
 const mongoUri = process.env.MONGO_URI;
 const dbName = process.env.DB_NAME || "tracediary";
@@ -398,7 +403,7 @@ async function main() {
     // 4. EMBEDDED SUBDOCUMENT CRUD (auditTrail inside entries)
     // ==============================================================
 
-    // Add Audit Log Attempt to Entry[cite: 1, 9]
+    // Add Audit Log Attempt to Entry
     app.post("/entries/:id/audits", verifyToken, async (req, res) => {
       try {
         const { id } = req.params;
@@ -477,10 +482,10 @@ async function main() {
     );
 
     // ==========================================
-    // 5. GENERATIVE AI ENDPOINTS[cite: 1, 9]
+    // 5. GENERATIVE AI ENDPOINTS
     // ==========================================
 
-    // AI Natural Language Search Query Translation[cite: 1, 9]
+    // AI Natural Language Search Query Translation
     app.get("/ai/entries", async (req, res) => {
       try {
         const { q } = req.query;
@@ -543,7 +548,7 @@ async function main() {
       }
     });
 
-    // AI Automated Log Triage & Structured Entry Generation[cite: 1, 9]
+    // AI Automated Log Triage & Structured Entry Generation
     app.post("/ai/entries", verifyToken, async (req, res) => {
       try {
         const { logText } = req.body;

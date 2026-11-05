@@ -252,16 +252,26 @@ The application is deployed to a cloud hosting platform (e.g., Render / Railway)
 - [+] **Screenshot 2:** `POST /login` (200 OK returning `accessToken`)
 ![User login using ARC](images/02-user-login.png)
 - [+] **Screenshot 3:** `GET /profile` with `Bearer <token>` (200 OK)
-![GET/profile with 'Bearer token'](images/03-access-tokern.png)
+![GET /profile` with `Bearer <token>'](images/03-get-profile-token.png)
 - [+] **Screenshot 4:** `GET /entries` (200 OK with query parameters)
 ![Get/entries](images/04-get-entries.png)
 - [x] **Screenshot 5:** `POST /entries` with Bearer Token (201 Created)
-
+![Post entries with token](images/05-post-entries-token.png)
+![Post entries with token - Campass](images/05-post-entries-token-campass.png)
 - [x] **Screenshot 6:** `PUT /entries/:id` (200 OK)
+![PUT /entries/:id](images/06-put-entries-token.png)
+![PUT /entries/:id - Compass](images/06-put-entries-token-campass.png)
 - [x] **Screenshot 7:** `POST /entries/:id/audits` (201 Created via `$push`)
+![POST /entries/:id/audits](images/07-pos-entries-audits-token.png)
+![POST /entries/:id/audits - Compass](images/07-pos-entries-audits-token-campass.png)
 - [x] **Screenshot 8:** `DELETE /entries/:id/audits/:attemptId` (200 OK via `$pull`)
+![alt text](images/08-del-entries-audits-token.png)
+![alt text](images/08-del-entries-audits-token-compass.png)
 - [x] **Screenshot 9:** `GET /ai/entries?q=...` (200 OK with `inferredFilters`)
+![GET /ai/entries?q=...](images/09-get-ai-query.png)
 - [x] **Screenshot 10:** `POST /ai/entries` with raw error trace (201 Created)
+
+
 
 ---
 
