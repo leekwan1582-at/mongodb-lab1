@@ -106,7 +106,7 @@ async function main() {
       }
     });
 
-    // Login User (JWT Issue)[cite: 1, 9]
+    // Login User (JWT Issue)
     app.post("/login", async (req, res) => {
       try {
         const { email, password } = req.body;
