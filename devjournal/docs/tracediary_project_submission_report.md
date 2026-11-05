@@ -256,6 +256,7 @@ The application is deployed to a cloud hosting platform (e.g., Render / Railway)
 - [+] **Screenshot 4:** `GET /entries` (200 OK with query parameters)
 ![Get/entries](images/04-get-entries.png)
 - [x] **Screenshot 5:** `POST /entries` with Bearer Token (201 Created)
+
 - [x] **Screenshot 6:** `PUT /entries/:id` (200 OK)
 - [x] **Screenshot 7:** `POST /entries/:id/audits` (201 Created via `$push`)
 - [x] **Screenshot 8:** `DELETE /entries/:id/audits/:attemptId` (200 OK via `$pull`)
